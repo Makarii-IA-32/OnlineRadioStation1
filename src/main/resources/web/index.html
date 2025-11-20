@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Online Radio Station</title>
+    <!-- HLS.js з CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+</head>
+<body>
+<h1>Online Radio Station</h1>
+
+<div>
+    <strong>Зараз грає:</strong>
+    <div id="track-title">—</div>
+    <div id="track-artist">—</div>
+    <div>Слухачів зараз: <span id="listeners-count">0</span></div>
+</div>
+
+<hr>
+
+<audio id="player" controls></audio>
+
+<script>
+    const audio = document.getElementById('player');
+    const hlsUrl = '/hls/main/stream.m3u8';
+
+    function startPlayback() {
+        if (window.Hls && Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(hlsUrl);
+            hls.attachMedia(audio);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                audio.play();
+            });
+        } else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
+            audio.src = hlsUrl;
+            audio.play();
+        } else {
+            alert("Ваш браузер не підтримує HLS");
+        }
+    }
+
+    // можна стартувати автоматично
+    startPlayback();
+</script>
+
+</body>
+</html>
