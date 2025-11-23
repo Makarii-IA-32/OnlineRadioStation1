@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 
 public class HlsHandler implements HttpHandler {
 
-    private final Path rootDir; // наприклад, Paths.get("hls")
+    private final Path rootDir;
 
     public HlsHandler(Path rootDir) {
         this.rootDir = rootDir;

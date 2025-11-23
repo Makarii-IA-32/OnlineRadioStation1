@@ -14,11 +14,14 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.SQLException;
 
 public class CoverHandler implements HttpHandler {
 
     private final TrackRepository trackRepository = new SQLiteTrackRepository();
+
+    private static final Path DEFAULT_COVER = Paths.get("cover-library", "default.jpg");
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
@@ -28,55 +31,50 @@ public class CoverHandler implements HttpHandler {
         }
 
         int trackId = parseTrackId(exchange.getRequestURI());
-        if (trackId <= 0) {
-            sendText(exchange, 400, "Missing or invalid trackId");
-            return;
-        }
+        Path fileToSend = null;
 
-        Track track;
-        try {
-            track = trackRepository.findById(trackId);
-        } catch (SQLException e) {
-            e.printStackTrace();
-            sendText(exchange, 500, "Database error: " + e.getMessage());
-            return;
-        }
-
-        if (track == null) {
-            sendText(exchange, 404, "Track not found");
-            return;
-        }
-
-        if (track.getCoverFile() == null || track.getCoverFile().isEmpty()) {
-            sendText(exchange, 404, "No cover file for this track");
-            return;
-        }
-
-        Path coverPath = Path.of(track.getBasePath(), track.getCoverFile());
-        if (!Files.exists(coverPath)) {
-            sendText(exchange, 404, "Cover image not found: " + coverPath.toAbsolutePath());
-            return;
-        }
-
-        String contentType = guessContentType(coverPath.toString());
-        exchange.getResponseHeaders().add("Content-Type", contentType);
-        exchange.sendResponseHeaders(200, 0);
-
-        try (OutputStream os = exchange.getResponseBody();
-             InputStream is = Files.newInputStream(coverPath)) {
-
-            byte[] buffer = new byte[4096];
-            int read;
-            while ((read = is.read(buffer)) != -1) {
-                os.write(buffer, 0, read);
+        if (trackId > 0) {
+            try {
+                Track track = trackRepository.findById(trackId);
+                if (track != null && track.getCoverPath() != null && !track.getCoverPath().isBlank()) {
+                    Path p = Path.of(track.getCoverPath());
+                    if (Files.exists(p)) {
+                        fileToSend = p;
+                    }
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
             }
+        }
+
+        // Якщо файл не знайдено або trackId кривий — віддаємо default.jpg
+        if (fileToSend == null) {
+            if (Files.exists(DEFAULT_COVER)) {
+                fileToSend = DEFAULT_COVER;
+            } else {
+                sendText(exchange, 404, "Cover not found and default.jpg missing");
+                return;
+            }
+        }
+
+        String contentType = guessContentType(fileToSend.toString());
+        exchange.getResponseHeaders().add("Content-Type", contentType);
+
+        try {
+            long size = Files.size(fileToSend);
+            exchange.sendResponseHeaders(200, size);
+            try (OutputStream os = exchange.getResponseBody();
+                 InputStream is = Files.newInputStream(fileToSend)) {
+                is.transferTo(os);
+            }
+        } catch (IOException e) {
+            System.err.println("Error sending cover: " + e.getMessage());
         }
     }
 
     private int parseTrackId(URI uri) {
         String query = uri.getRawQuery();
         if (query == null) return -1;
-
         for (String pair : query.split("&")) {
             String[] kv = pair.split("=");
             if (kv.length == 2 && kv[0].equals("trackId")) {
@@ -92,7 +90,7 @@ public class CoverHandler implements HttpHandler {
         String lower = path.toLowerCase();
         if (lower.endsWith(".png")) return "image/png";
         if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
-        return "image/octet-stream";
+        return "application/octet-stream";
     }
 
     private void sendText(HttpExchange exchange, int status, String message) throws IOException {

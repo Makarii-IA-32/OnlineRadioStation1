@@ -6,14 +6,14 @@ public class PlaybackEvent {
     private long id;
     private int userId;
     private int trackId;
-    private int bitrate;
+    private int channelId; // Тепер int
     private LocalDateTime startTime;
     private LocalDateTime endTime;
 
-    public PlaybackEvent(int userId, int trackId, int bitrate) {
+    public PlaybackEvent(int userId, int trackId, int channelId) {
         this.userId = userId;
         this.trackId = trackId;
-        this.bitrate = bitrate;
+        this.channelId = channelId;
         this.startTime = LocalDateTime.now();
     }
 
@@ -24,8 +24,8 @@ public class PlaybackEvent {
 
     public int getTrackId() { return trackId; }
 
-    public int getBitrate() { return bitrate; }
-    public void setBitrate(int bitrate) { this.bitrate = bitrate; }
+    public int getChannelId() { return channelId; }
+    public void setChannelId(int channelId) { this.channelId = channelId; }
 
     public LocalDateTime getStartTime() { return startTime; }
 
@@ -33,16 +33,5 @@ public class PlaybackEvent {
 
     public void endEvent() {
         this.endTime = LocalDateTime.now();
-    }
-
-    @Override
-    public String toString() {
-        return "PlaybackEvent{" +
-                "userId=" + userId +
-                ", trackId=" + trackId +
-                ", bitrate=" + bitrate +
-                ", startTime=" + startTime +
-                ", endTime=" + endTime +
-                '}';
     }
 }

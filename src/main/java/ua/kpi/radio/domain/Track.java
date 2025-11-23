@@ -1,30 +1,26 @@
 package ua.kpi.radio.domain;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class Track {
     private int id;
     private String title;
     private String artist;
     private String album;
-    private String audioPath;  // C:/.../music-library/track1.mp3
-    private String coverPath;  // C:/.../cover-library/track1.jpg або null
-
+    private String audioPath;  // Повний відносний шлях, напр. "music-library/track.mp3"
+    private String coverPath;  // Повний відносний шлях, напр. "music-library/cover.jpg"
 
     public Track() {
     }
 
-    public Track(int id, String title, String artist, String album, String basePath, String coverFile) {
+    public Track(int id, String title, String artist, String album, String audioPath, String coverPath) {
         this.id = id;
         this.title = title;
         this.artist = artist;
         this.album = album;
-        this.audioPath = basePath;
-        this.coverPath = coverFile;
+        this.audioPath = audioPath;
+        this.coverPath = coverPath;
     }
 
-    // Геттери/сеттери
+    // Геттери та сеттери
 
     public int getId() {
         return id;
@@ -33,7 +29,6 @@ public class Track {
     public void setId(int id) {
         this.id = id;
     }
-
 
     public String getTitle() {
         return title;
@@ -58,6 +53,7 @@ public class Track {
     public void setAlbum(String album) {
         this.album = album;
     }
+
     public String getAudioPath() {
         return audioPath;
     }
@@ -65,9 +61,11 @@ public class Track {
     public void setAudioPath(String audioPath) {
         this.audioPath = audioPath;
     }
+
     public String getCoverPath() {
         return coverPath;
     }
+
     public void setCoverPath(String coverPath) {
         this.coverPath = coverPath;
     }
@@ -78,7 +76,7 @@ public class Track {
                 "id=" + id +
                 ", title='" + title + '\'' +
                 ", artist='" + artist + '\'' +
-                ", album='" + album + '\'' +
+                ", path='" + audioPath + '\'' +
                 '}';
     }
 }

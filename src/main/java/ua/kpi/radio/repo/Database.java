@@ -9,9 +9,6 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-/**
- * Проста утиліта для роботи з SQLite.
- */
 public class Database {
 
     private static final String URL = "jdbc:sqlite:radio.db";
@@ -20,9 +17,6 @@ public class Database {
         return DriverManager.getConnection(URL);
     }
 
-    /**
-     * Ініціалізація БД: виконує schema.sql із resources.
-     */
     public static void init() {
         try (Connection conn = getConnection()) {
             runSchema(conn);

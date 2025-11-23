@@ -11,38 +11,28 @@ public class SQLiteTrackRepository implements TrackRepository {
 
     @Override
     public Track findAny() throws SQLException {
+        String sql = "SELECT id, title, artist, album, audio_path, cover_path FROM tracks LIMIT 1";
         try (Connection conn = Database.getConnection();
-             PreparedStatement ps = conn.prepareStatement(
-                     "SELECT id, title, artist, album, base_path, cover_file FROM tracks LIMIT 1"
-             )) {
-
-            try (ResultSet rs = ps.executeQuery()) {
-                if (!rs.next()) {
-                    return null;
-                }
-                Track track = mapTrack(rs);
-                loadFilesForTrack(conn, track);
-                return track;
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (!rs.next()) {
+                return null;
             }
+            return mapTrack(rs);
         }
     }
 
     @Override
     public Track findById(int id) throws SQLException {
+        String sql = "SELECT id, title, artist, album, audio_path, cover_path FROM tracks WHERE id = ?";
         try (Connection conn = Database.getConnection();
-             PreparedStatement ps = conn.prepareStatement(
-                     "SELECT id, title, artist, album, base_path, cover_file FROM tracks WHERE id = ?"
-             )) {
-
+             PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, id);
-
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) {
                     return null;
                 }
-                Track track = mapTrack(rs);
-                loadFilesForTrack(conn, track);
-                return track;
+                return mapTrack(rs);
             }
         }
     }
@@ -52,11 +42,7 @@ public class SQLiteTrackRepository implements TrackRepository {
         try (Connection conn = Database.getConnection();
              PreparedStatement ps = conn.prepareStatement("SELECT COUNT(*) FROM tracks");
              ResultSet rs = ps.executeQuery()) {
-
-            if (rs.next()) {
-                return rs.getInt(1) > 0;
-            }
-            return false;
+            return rs.next() && rs.getInt(1) > 0;
         }
     }
 
@@ -66,23 +52,8 @@ public class SQLiteTrackRepository implements TrackRepository {
         track.setTitle(rs.getString("title"));
         track.setArtist(rs.getString("artist"));
         track.setAlbum(rs.getString("album"));
-        track.setBasePath(rs.getString("base_path"));
-        track.setCoverFile(rs.getString("cover_file"));
+        track.setAudioPath(rs.getString("audio_path"));
+        track.setCoverPath(rs.getString("cover_path"));
         return track;
-    }
-
-    private void loadFilesForTrack(Connection conn, Track track) throws SQLException {
-        try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT bitrate, file_path FROM track_files WHERE track_id = ?"
-        )) {
-            ps.setInt(1, track.getId());
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    int bitrate = rs.getInt("bitrate");
-                    String path = rs.getString("file_path");
-                    track.addFileForBitrate(bitrate, path);
-                }
-            }
-        }
     }
 }

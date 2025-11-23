@@ -8,9 +8,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
-/**
- * Facade для JavaFX-адмінки: тут інкапсулюємо всі HTTP-запити до сервера.
- */
 public class RadioAdminFacade {
 
     private static final String BASE_URL = "http://localhost:8080";
@@ -34,11 +31,6 @@ public class RadioAdminFacade {
         return gson.fromJson(response.body(), NowPlayingDto.class);
     }
 
-    // потім тут додамо:
-    // - reloadPlaylist()
-    // - getStatistics()
-    // - startStream()/stopStream()
-    // - керування плейлистами
 
     public static class NowPlayingDto {
         private int trackId;

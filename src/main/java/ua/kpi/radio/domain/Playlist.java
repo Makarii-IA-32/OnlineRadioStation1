@@ -7,35 +7,20 @@ import java.util.List;
 public class Playlist {
     private int id;
     private String name;
-    private String description;
     private final List<Track> tracks = new ArrayList<>();
 
-    public Playlist() {
-    }
+    public Playlist() {}
 
-    public Playlist(int id, String name, String description) {
+    public Playlist(int id, String name) {
         this.id = id;
         this.name = name;
-        this.description = description;
     }
 
-    public int getId() {
-        return id;
-    }
-
+    public int getId() { return id; }
     public void setId(int id) { this.id = id; }
 
-    public String getName() {
-        return name;
-    }
-
+    public String getName() { return name; }
     public void setName(String name) { this.name = name; }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) { this.description = description; }
 
     public List<Track> getTracks() {
         return Collections.unmodifiableList(tracks);
@@ -43,9 +28,5 @@ public class Playlist {
 
     public void addTrack(Track track) {
         tracks.add(track);
-    }
-
-    public void removeTrack(Track track) {
-        tracks.remove(track);
     }
 }

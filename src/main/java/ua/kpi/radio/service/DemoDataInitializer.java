@@ -1,19 +1,16 @@
 package ua.kpi.radio.service;
 
 import ua.kpi.radio.repo.Database;
-import ua.kpi.radio.repo.SQLiteTrackRepository;
-import ua.kpi.radio.repo.TrackRepository;
-import ua.kpi.radio.repo.PlaylistRepository;
 import ua.kpi.radio.repo.SQLitePlaylistRepository;
+import ua.kpi.radio.repo.SQLiteTrackRepository;
+import ua.kpi.radio.repo.PlaylistRepository;
+import ua.kpi.radio.repo.TrackRepository;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-/**
- * Простий ініціалізатор, який додає 1 демо-трек і 1 демо-плейлист, якщо в БД ще нічого немає.
- */
 public class DemoDataInitializer {
 
     private final TrackRepository trackRepository = new SQLiteTrackRepository();
@@ -25,7 +22,7 @@ public class DemoDataInitializer {
             boolean hasPlaylists = playlistRepository.hasAny();
 
             if (hasTracks && hasPlaylists) {
-                System.out.println("Demo data already present, skipping seeding.");
+                System.out.println("Demo data present, skipping seeding.");
                 return;
             }
 
@@ -35,18 +32,23 @@ public class DemoDataInitializer {
                     int trackId;
                     if (!hasTracks) {
                         trackId = insertDemoTrack(conn);
-                        insertDemoTrackFiles(conn, trackId);
                     } else {
                         trackId = getAnyTrackId(conn);
                     }
 
+                    int playlistId;
                     if (!hasPlaylists) {
-                        int playlistId = insertDemoPlaylist(conn);
+                        playlistId = insertDemoPlaylist(conn);
                         insertDemoPlaylistTrack(conn, playlistId, trackId);
+                    } else {
+                        playlistId = getFirstPlaylistId(conn);
                     }
 
+                    // Створюємо канал, якщо ще немає
+                    insertDemoChannel(conn, playlistId);
+
                     conn.commit();
-                    System.out.println("Inserted demo track and playlist data into database.");
+                    System.out.println("Inserted demo data.");
                 } catch (SQLException e) {
                     conn.rollback();
                     throw e;
@@ -55,76 +57,66 @@ public class DemoDataInitializer {
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to initialize demo data", e);
+            e.printStackTrace();
         }
     }
 
     private int insertDemoTrack(Connection conn) throws SQLException {
+        // Оновлені шляхи до папок music-library та cover-library
         String sql = """
-                INSERT INTO tracks (title, artist, album, base_path, cover_file)
+                INSERT INTO tracks (title, artist, album, audio_path, cover_path)
                 VALUES (?, ?, ?, ?, ?)
                 """;
 
         try (PreparedStatement ps = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, "Demo Track");
             ps.setString(2, "Demo Artist");
-            ps.setString(3, "Demo Album");
-            ps.setString(4, "music-library/demo");
-            ps.setString(5, "cover.jpg");
+            ps.setString(3, "Hunting Soul");
+            ps.setString(4, "music-library/demo.mp3");
+            ps.setString(5, "cover-library/demo.jpg");
             ps.executeUpdate();
 
             try (ResultSet rs = ps.getGeneratedKeys()) {
-                if (rs.next()) {
-                    return rs.getInt(1);
-                } else {
-                    throw new SQLException("Failed to retrieve generated track id");
-                }
+                if (rs.next()) return rs.getInt(1);
+                else throw new SQLException("Failed to get track id");
             }
-        }
-    }
-
-    private void insertDemoTrackFiles(Connection conn, int trackId) throws SQLException {
-        String sql = """
-                INSERT INTO track_files (track_id, bitrate, file_path)
-                VALUES (?, ?, ?)
-                """;
-
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            // 128 kbps (обов'язково поклади music-library/demo/128.mp3)
-            ps.setInt(1, trackId);
-            ps.setInt(2, 128);
-            ps.setString(3, "music-library/demo/128.mp3");
-            ps.executeUpdate();
-
-            // за бажанням додаси інші бітрейти
         }
     }
 
     private int insertDemoPlaylist(Connection conn) throws SQLException {
-        String sql = """
-                INSERT INTO playlists (name, description)
-                VALUES (?, ?)
-                """;
-
+        // ВИПРАВЛЕНО: прибрано поле description
+        String sql = "INSERT INTO playlists (name) VALUES (?)";
         try (PreparedStatement ps = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, "Demo Playlist");
-            ps.setString(2, "Demo playlist with one track");
             ps.executeUpdate();
-
             try (ResultSet rs = ps.getGeneratedKeys()) {
-                if (!rs.next()) {
-                    throw new SQLException("Failed to get playlist id");
-                }
-                return rs.getInt(1);
+                if (rs.next()) return rs.getInt(1);
+                else throw new SQLException("Failed to get playlist id");
             }
         }
     }
 
+    private void insertDemoChannel(Connection conn, int playlistId) throws SQLException {
+        // Перевіряємо чи є хоч якісь канали
+        try (PreparedStatement check = conn.prepareStatement("SELECT COUNT(*) FROM radio_channels");
+             ResultSet rs = check.executeQuery()) {
+            if (rs.next() && rs.getInt(1) > 0) {
+                return;
+            }
+        }
+
+        // Вставляємо дефолтний канал "main"
+        String sql = "INSERT INTO radio_channels (name, playlist_id, bitrate) VALUES (?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, "main");
+            ps.setInt(2, playlistId);
+            ps.setInt(3, 128);
+            ps.executeUpdate();
+        }
+    }
+
     private void insertDemoPlaylistTrack(Connection conn, int playlistId, int trackId) throws SQLException {
-        String sql = """
-                INSERT INTO playlist_tracks (playlist_id, track_id, order_index)
-                VALUES (?, ?, ?)
-                """;
+        String sql = "INSERT INTO playlist_tracks (playlist_id, track_id, order_index) VALUES (?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, playlistId);
             ps.setInt(2, trackId);
@@ -136,10 +128,16 @@ public class DemoDataInitializer {
     private int getAnyTrackId(Connection conn) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement("SELECT id FROM tracks LIMIT 1");
              ResultSet rs = ps.executeQuery()) {
-            if (!rs.next()) {
-                throw new SQLException("No tracks found when expected at least one");
-            }
-            return rs.getInt("id");
+            if (rs.next()) return rs.getInt(1);
+            throw new SQLException("No tracks found");
+        }
+    }
+
+    private int getFirstPlaylistId(Connection conn) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement("SELECT id FROM playlists LIMIT 1");
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) return rs.getInt(1);
+            return 0;
         }
     }
 }
