@@ -82,4 +82,17 @@ public class SQLitePlaylistRepository implements PlaylistRepository {
         }
         return result;
     }
+    @Override
+    public List<Playlist> findAll() throws SQLException {
+        String sql = "SELECT id, name FROM playlists";
+        List<Playlist> list = new ArrayList<>();
+        try (Connection conn = Database.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                list.add(new Playlist(rs.getInt("id"), rs.getString("name")));
+            }
+        }
+        return list;
+    }
 }

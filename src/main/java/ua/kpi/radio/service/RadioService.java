@@ -3,10 +3,15 @@ package ua.kpi.radio.service;
 import ua.kpi.radio.domain.Track;
 import ua.kpi.radio.radio.RadioChannelManager;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 public class RadioService {
 
     private static final RadioService INSTANCE = new RadioService();
-    private Track currentTrack;
+
+    // Зберігаємо трек для кожного каналу окремо: ChannelID -> Track
+    private final Map<Integer, Track> channelTracks = new ConcurrentHashMap<>();
 
     private RadioService() {}
 
@@ -14,32 +19,35 @@ public class RadioService {
         return INSTANCE;
     }
 
-    public synchronized Track getCurrentTrack() {
-        return currentTrack;
+    public void updateNowPlaying(int channelId, Track track) {
+        channelTracks.put(channelId, track);
     }
 
-    public synchronized void updateNowPlaying(Track track) {
-        this.currentTrack = track;
+    public void clearNowPlaying(int channelId) {
+        channelTracks.remove(channelId);
     }
 
-    public synchronized NowPlayingInfo getNowPlayingInfo() {
+    /**
+     * Отримати інфо для конкретного каналу
+     */
+    public NowPlayingInfo getNowPlayingInfo(int channelId) {
         NowPlayingInfo info = new NowPlayingInfo();
 
-        if (!RadioChannelManager.getInstance().isAnyChannelRunning()) {
-            info.setTitle("Ефір зупинено");
-            return info;
-        }
+        // Перевіряємо, чи є такий канал і чи він активний (за бажанням можна питати Manager)
+        Track currentTrack = channelTracks.get(channelId);
 
         if (currentTrack == null) {
-            info.setTitle("Очікування треку...");
+            // Якщо нічого не грає або канал вимкнено
+            info.setTitle("Очікування треку..."); // або "Ефір зупинено"
+            info.setArtist("");
+            info.setListeners(0);
             return info;
         }
 
         info.setTrackId(currentTrack.getId());
         info.setTitle(currentTrack.getTitle());
         info.setArtist(currentTrack.getArtist());
-        // Listener count поки що прибираємо або ставимо заглушку
-        info.setListeners(0);
+        info.setListeners(0); // Лічильник слухачів поки заглушка
         info.setCoverUrl("/covers?trackId=" + currentTrack.getId());
 
         return info;
@@ -52,12 +60,16 @@ public class RadioService {
         private int listeners;
         private String coverUrl;
 
-        // Getters & Setters
-        public void setTrackId(int id) { this.trackId = id; }
-        public void setTitle(String t) { this.title = t; }
-        public void setArtist(String a) { this.artist = a; }
-        public void setListeners(int l) { this.listeners = l; }
-        public void setCoverUrl(String c) { this.coverUrl = c; }
-        // Додайте геттери за потребою для Gson
+        // Getters / Setters
+        public String getTitle() { return title; }
+        public void setTitle(String title) { this.title = title; }
+        public String getArtist() { return artist; }
+        public void setArtist(String artist) { this.artist = artist; }
+        public int getListeners() { return listeners; }
+        public void setListeners(int listeners) { this.listeners = listeners; }
+        public String getCoverUrl() { return coverUrl; }
+        public void setCoverUrl(String coverUrl) { this.coverUrl = coverUrl; }
+        public int getTrackId() { return trackId; }
+        public void setTrackId(int trackId) { this.trackId = trackId; }
     }
 }

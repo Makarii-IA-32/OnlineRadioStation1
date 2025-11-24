@@ -22,6 +22,7 @@ public class AdminBroadcastStateHandler implements HttpHandler {
         }
 
         StateDto dto = new StateDto();
+        // ТУТ ВИКЛИКАЄТЬСЯ МЕТОД, ЯКИЙ МИ ДОДАЛИ ВИЩЕ
         dto.broadcasting = channelManager.isAnyChannelRunning();
 
         String json = gson.toJson(dto);

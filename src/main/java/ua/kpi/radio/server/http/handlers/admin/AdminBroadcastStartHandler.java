@@ -5,30 +5,30 @@ import com.sun.net.httpserver.HttpHandler;
 import ua.kpi.radio.radio.RadioChannelManager;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
+import java.net.URI;
 
 public class AdminBroadcastStartHandler implements HttpHandler {
-
-    private final RadioChannelManager channelManager = RadioChannelManager.getInstance();
-
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-        if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())
-                && !"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
-            exchange.sendResponseHeaders(405, -1);
-            return;
+        String idStr = getQueryParam(exchange.getRequestURI(), "id");
+        if (idStr != null) {
+            // Запуск конкретного каналу
+            int id = Integer.parseInt(idStr);
+            RadioChannelManager.getInstance().startChannel(id);
+        } else {
+            // Запуск всіх (якщо id не передано)
+            RadioChannelManager.getInstance().startAllChannels();
         }
+        exchange.sendResponseHeaders(200, 0);
+    }
 
-        // Запускаємо всі доступні канали
-        channelManager.startAllChannels();
-
-        String response = "Broadcast started";
-        byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
-        exchange.getResponseHeaders().add("Content-Type", "text/plain; charset=UTF-8");
-        exchange.sendResponseHeaders(200, bytes.length);
-        try (OutputStream os = exchange.getResponseBody()) {
-            os.write(bytes);
+    private String getQueryParam(URI uri, String key) {
+        String query = uri.getQuery();
+        if (query == null) return null;
+        for (String p : query.split("&")) {
+            String[] kv = p.split("=");
+            if (kv.length == 2 && kv[0].equals(key)) return kv[1];
         }
+        return null;
     }
 }

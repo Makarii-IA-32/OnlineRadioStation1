@@ -1,154 +1,116 @@
 package ua.kpi.radio.client.admin.facade;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import ua.kpi.radio.domain.RadioChannel;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.List;
 
 public class RadioAdminFacade {
 
     private static final String BASE_URL = "http://localhost:8080";
-
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final Gson gson = new Gson();
 
-    public NowPlayingDto getNowPlaying() throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/api/now-playing"))
-                .GET()
-                .build();
+    // --- CHANNELS ---
 
-        HttpResponse<String> response =
-                httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 200) {
-            throw new IOException("Server returned status " + response.statusCode());
-        }
-
-        return gson.fromJson(response.body(), NowPlayingDto.class);
+    public List<RadioChannel> getAllChannels() throws IOException, InterruptedException {
+        String json = sendGet("/admin/channels");
+        return gson.fromJson(json, new TypeToken<List<RadioChannel>>(){}.getType());
     }
 
+    public void createChannel(String name) throws IOException, InterruptedException {
+        String encodedName = URLEncoder.encode(name, StandardCharsets.UTF_8);
+        sendPost("/admin/channels/create?name=" + encodedName);
+    }
 
+    public void deleteChannel(int id) throws IOException, InterruptedException {
+        sendPost("/admin/channels/delete?id=" + id);
+    }
+
+    public void startChannel(int id) throws IOException, InterruptedException {
+        sendPost("/admin/broadcast/start?id=" + id);
+    }
+
+    public void stopChannel(int id) throws IOException, InterruptedException {
+        sendPost("/admin/broadcast/stop?id=" + id);
+    }
+
+    public void skipTrack(int id) throws IOException, InterruptedException {
+        sendPost("/admin/broadcast/skip?id=" + id);
+    }
+
+    public void setChannelPlaylist(int channelId, int playlistId) throws IOException, InterruptedException {
+        sendPost("/admin/channels/set-playlist?channelId=" + channelId + "&playlistId=" + playlistId);
+    }
+
+    // --- INFO ---
+
+    public NowPlayingDto getNowPlaying(int channelId) throws IOException, InterruptedException {
+        // Увага: NowPlayingHandler на сервері має вміти приймати ?channelId=...
+        // Якщо він поки не вміє, повертатиме загальну інфу.
+        // Але для майбутнього краще передавати параметр.
+        String json = sendGet("/api/now-playing?channelId=" + channelId);
+        return gson.fromJson(json, NowPlayingDto.class);
+    }
+
+    public PlaylistInfoDto getPlaylistDetails(int playlistId) throws IOException, InterruptedException {
+        String json = sendGet("/admin/playlist?id=" + playlistId);
+        return gson.fromJson(json, PlaylistInfoDto.class);
+    }
+
+    public List<PlaylistSimpleDto> getAllPlaylists() throws IOException, InterruptedException {
+        String json = sendGet("/admin/playlists/list");
+        return gson.fromJson(json, new TypeToken<List<PlaylistSimpleDto>>(){}.getType());
+    }
+
+    // --- HTTP Helpers ---
+
+    private String sendGet(String path) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(BASE_URL + path)).GET().build();
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) throw new IOException("Server error " + response.statusCode());
+        return response.body();
+    }
+
+    private void sendPost(String path) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(BASE_URL + path))
+                .POST(HttpRequest.BodyPublishers.noBody()).build();
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) throw new IOException("Server error " + response.statusCode());
+    }
+
+    // DTOs
     public static class NowPlayingDto {
-        private int trackId;
-        private String title;
-        private String artist;
+        private String title, artist, coverUrl;
         private int listeners;
-        private String coverUrl;
-
-        public int getTrackId() { return trackId; }
-        public void setTrackId(int trackId) { this.trackId = trackId; }
-
         public String getTitle() { return title; }
-        public void setTitle(String title) { this.title = title; }
-
         public String getArtist() { return artist; }
-        public void setArtist(String artist) { this.artist = artist; }
-
-        public int getListeners() { return listeners; }
-        public void setListeners(int listeners) { this.listeners = listeners; }
-
         public String getCoverUrl() { return coverUrl; }
-        public void setCoverUrl(String coverUrl) { this.coverUrl = coverUrl; }
-    }
-//    ______
-public PlaylistInfoDto getPlaylistInfo() throws IOException, InterruptedException {
-    HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(BASE_URL + "/admin/playlist"))
-            .GET()
-            .build();
-
-    HttpResponse<String> response =
-            httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-    if (response.statusCode() != 200) {
-        throw new IOException("Server returned status " + response.statusCode());
-    }
-
-    return gson.fromJson(response.body(), PlaylistInfoDto.class);
-}
-
-    public void reloadPlaylist() throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/admin/reload-playlist"))
-                .POST(HttpRequest.BodyPublishers.noBody())
-                .build();
-
-        HttpResponse<String> response =
-                httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 200) {
-            throw new IOException("Reload failed: " + response.body());
-        }
+        public int getListeners() { return listeners; }
     }
 
     public static class PlaylistInfoDto {
+        private String name;
+        private int tracksCount;
+        private List<String> tracks;
+        public String getName() { return name; }
+        public int getTracksCount() { return tracksCount; }
+        public List<String> getTracks() { return tracks; }
+    }
+
+    public static class PlaylistSimpleDto {
         private int id;
         private String name;
-        private String description;
-        private int tracksCount;
-        private java.util.List<String> tracks;
-
         public int getId() { return id; }
         public String getName() { return name; }
-        public String getDescription() { return description; }
-        public int getTracksCount() { return tracksCount; }
-        public java.util.List<String> getTracks() { return tracks; }
+        @Override public String toString() { return name; }
     }
-//    _________
-public BroadcastStateDto getBroadcastState() throws IOException, InterruptedException {
-    HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(BASE_URL + "/admin/broadcast/state"))
-            .GET()
-            .build();
-
-    HttpResponse<String> response =
-            httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-    if (response.statusCode() != 200) {
-        throw new IOException("Server returned status " + response.statusCode());
-    }
-
-    return gson.fromJson(response.body(), BroadcastStateDto.class);
-}
-
-    public void startBroadcast() throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/admin/broadcast/start"))
-                .POST(HttpRequest.BodyPublishers.noBody())
-                .build();
-
-        HttpResponse<String> response =
-                httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 200) {
-            throw new IOException("Failed to start: " + response.body());
-        }
-    }
-
-    public void stopBroadcast() throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/admin/broadcast/stop"))
-                .POST(HttpRequest.BodyPublishers.noBody())
-                .build();
-
-        HttpResponse<String> response =
-                httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 200) {
-            throw new IOException("Failed to stop: " + response.body());
-        }
-    }
-
-    public static class BroadcastStateDto {
-        private boolean broadcasting;
-
-        public boolean isBroadcasting() {
-            return broadcasting;
-        }
-    }
-
 }
