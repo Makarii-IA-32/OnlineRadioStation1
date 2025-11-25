@@ -76,14 +76,19 @@
         document.getElementById('track-title').innerText = data.title || '—';
         document.getElementById('track-artist').innerText = data.artist || '';
 
-        // Оновлюємо картинку тільки якщо URL змінився
-        if (data.coverUrl && data.coverUrl !== lastCoverUrl) {
-            lastCoverUrl = data.coverUrl;
-            // Додаємо timestamp, щоб браузер не показував стару картинку з кешу
-            coverImg.src = data.coverUrl + "&t=" + Date.now();
-            coverImg.style.display = 'block';
-        } else if (!data.coverUrl) {
-            coverImg.style.display = 'none'; // Або поставити заглушку
+        // Логіка відображення обкладинки
+        if (data.coverUrl) {
+            // Оновлюємо, якщо URL змінився АБО якщо картинка зараз прихована
+            if (data.coverUrl !== lastCoverUrl || coverImg.style.display === 'none') {
+                lastCoverUrl = data.coverUrl;
+                // Додаємо timestamp, щоб уникнути кешування
+                coverImg.src = data.coverUrl + "&t=" + Date.now();
+                coverImg.style.display = 'block';
+            }
+        } else {
+            // Якщо обкладинки немає (ефір стоїть) — ховаємо
+            coverImg.style.display = 'none';
+            lastCoverUrl = ""; // ВАЖЛИВО: Скидаємо запам'ятований URL, щоб при відновленні він вважався "новим"
         }
     }
 

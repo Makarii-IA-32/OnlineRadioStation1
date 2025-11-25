@@ -14,14 +14,17 @@ public class AdminChannelCreateHandler implements HttpHandler {
         String name = getQueryParam(exchange.getRequestURI(), "name");
         if (name == null || name.isBlank()) {
             exchange.sendResponseHeaders(400, 0);
+            exchange.getResponseBody().close(); // <--- ДОДАТИ ЦЕ
             return;
         }
         try {
             RadioChannelManager.getInstance().createChannel(name);
             exchange.sendResponseHeaders(200, 0);
+            exchange.getResponseBody().close(); // <--- ДОДАТИ ЦЕ! Без цього клієнт зависне.
         } catch (SQLException e) {
             e.printStackTrace();
             exchange.sendResponseHeaders(500, 0);
+            exchange.getResponseBody().close(); // <--- І ТУТ
         }
     }
 

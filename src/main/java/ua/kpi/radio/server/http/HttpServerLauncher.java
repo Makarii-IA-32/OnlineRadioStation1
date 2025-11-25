@@ -32,6 +32,8 @@ public class HttpServerLauncher {
         server.createContext("/admin/broadcast/start", new AdminBroadcastStartHandler());
         server.createContext("/admin/broadcast/stop", new AdminBroadcastStopHandler());
         server.createContext("/admin/broadcast/skip", new AdminBroadcastSkipHandler());
+        server.createContext("/admin/broadcast/jump", new AdminBroadcastJumpHandler());
+        server.createContext("/admin/channels/bitrate", new AdminChannelBitrateHandler());
 
         // Керування каналами
         server.createContext("/admin/channels", new AdminChannelListHandler()); // Список
@@ -39,8 +41,13 @@ public class HttpServerLauncher {
         server.createContext("/admin/channels/delete", new AdminChannelDeleteHandler());
         server.createContext("/admin/channels/set-playlist", new AdminChannelSetPlaylistHandler());
 
-        // Керування плейлистами (список)
+        // Керування плейлистами
         server.createContext("/admin/playlists/list", new AdminPlaylistsListHandler());
+        server.createContext("/admin/tracks/create", new AdminTrackCreateHandler());
+        server.createContext("/admin/tracks/list", new AdminTrackListHandler());
+        server.createContext("/admin/playlists/action", new AdminPlaylistActionHandler());
+        server.createContext("/admin/playlists/track", new AdminPlaylistTrackHandler());
+        server.createContext("/admin/tracks/delete", new AdminTrackDeleteHandler());
 
         server.setExecutor(null);
         server.start();

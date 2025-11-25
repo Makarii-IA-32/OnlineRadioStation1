@@ -15,6 +15,7 @@ public class AdminChannelSetPlaylistHandler implements HttpHandler {
 
         if (chIdStr == null || plIdStr == null) {
             exchange.sendResponseHeaders(400, 0);
+            exchange.getResponseBody().close(); // <--- ВАЖЛИВО
             return;
         }
 
@@ -23,9 +24,11 @@ public class AdminChannelSetPlaylistHandler implements HttpHandler {
             int plId = Integer.parseInt(plIdStr);
             RadioChannelManager.getInstance().setChannelPlaylist(chId, plId);
             exchange.sendResponseHeaders(200, 0);
+            exchange.getResponseBody().close(); // <--- ВАЖЛИВО
         } catch (Exception e) {
             e.printStackTrace();
             exchange.sendResponseHeaders(500, 0);
+            exchange.getResponseBody().close(); // <--- ВАЖЛИВО
         }
     }
 

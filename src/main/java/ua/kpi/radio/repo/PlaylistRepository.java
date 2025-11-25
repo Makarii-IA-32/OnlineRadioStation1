@@ -11,4 +11,8 @@ public interface PlaylistRepository {
 
     // Новий метод
     List<Playlist> findAll() throws SQLException;
+    void create(String name) throws SQLException;
+    void delete(int id) throws SQLException;
+    void addTrack(int playlistId, int trackId) throws SQLException;
+    void removeTrack(int playlistId, int trackId) throws SQLException;
 }

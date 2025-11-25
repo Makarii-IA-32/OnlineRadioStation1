@@ -27,9 +27,13 @@ public class ChannelController {
     @FXML private Label lblListeners;
     @FXML private Label lblPlaylistName;
     @FXML private Label lblTrackCount;
-    @FXML private ListView<String> listTracks;
 
-    // Нова кнопка
+    // Список типізований DTO, щоб мати доступ до ID
+    @FXML private ListView<RadioAdminFacade.TrackDto> listTracks;
+
+    // Новий елемент для бітрейту
+    @FXML private ComboBox<Integer> comboBitrate;
+
     @FXML private Button btnChangePlaylist;
 
     private RadioChannel channel;
@@ -42,6 +46,61 @@ public class ChannelController {
         this.channel = channel;
         this.mainController = main;
         lblChannelName.setText(channel.getName());
+
+        // --- 1. Налаштування списку треків (відображення) ---
+        listTracks.setCellFactory(param -> new ListCell<>() {
+            @Override
+            protected void updateItem(RadioAdminFacade.TrackDto item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(item.toString()); // Title — Artist
+                }
+            }
+        });
+
+        // --- 2. Налаштування бітрейту ---
+        comboBitrate.getItems().addAll(64, 96, 128, 192, 224, 320);
+
+        // Встановлюємо поточне значення
+        if (channel.getBitrate() > 0) {
+            comboBitrate.setValue(channel.getBitrate());
+        } else {
+            comboBitrate.setValue(128);
+        }
+
+        // Обробка зміни бітрейту
+        comboBitrate.setOnAction(e -> {
+            Integer newBitrate = comboBitrate.getValue();
+            if (newBitrate != null) {
+                new Thread(() -> {
+                    try {
+                        facade.setChannelBitrate(channel.getId(), newBitrate);
+                        channel.setBitrate(newBitrate); // Оновлюємо локально
+                    } catch (Exception ex) {
+                        showError("Не вдалося змінити бітрейт: " + ex.getMessage());
+                    }
+                }).start();
+            }
+        });
+
+        // --- 3. Перемикання треку (Подвійний клік) ---
+        listTracks.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2) {
+                int selectedIndex = listTracks.getSelectionModel().getSelectedIndex();
+                if (selectedIndex >= 0) {
+                    onJumpToTrack(selectedIndex);
+                }
+            }
+        });
+
+        // --- 4. Підписка на оновлення плейлиста (з інших вікон) ---
+        ClientEvents.onPlaylistUpdated(playlistId -> {
+            if (this.channel != null && this.channel.getPlaylistId() == playlistId) {
+                loadPlaylistInfo();
+            }
+        });
 
         loadPlaylistInfo();
         startPolling();
@@ -84,9 +143,6 @@ public class ChannelController {
             imgCover.setImage(null);
         }
 
-        // --- ЛОГІКА БЛОКУВАННЯ КНОПКИ ---
-        // Якщо заголовок "Ефір зупинено" або "Очікування...", значить ефір стоїть -> можна міняти
-        // Якщо щось грає -> не можна
         boolean isRunning = info.getTitle() != null
                 && !info.getTitle().equals("Ефір зупинено")
                 && !info.getTitle().equals("Очікування треку...");
@@ -101,6 +157,7 @@ public class ChannelController {
                 Platform.runLater(() -> {
                     lblPlaylistName.setText(playlist.getName());
                     lblTrackCount.setText("Треків: " + playlist.getTracksCount());
+
                     if (playlist.getTracks() != null) {
                         listTracks.getItems().setAll(playlist.getTracks());
                     } else {
@@ -130,7 +187,6 @@ public class ChannelController {
             try { facade.startChannel(channel.getId()); }
             catch (Exception e) { showError(e.getMessage()); }
         }).start();
-        // Відразу блокуємо кнопку візуально, не чекаючи полінгу
         btnChangePlaylist.setDisable(true);
     }
 
@@ -150,6 +206,19 @@ public class ChannelController {
                 Thread.sleep(500);
                 refreshNowPlaying();
             } catch (Exception e) { showError(e.getMessage()); }
+        }).start();
+    }
+
+    // Приватний метод для стрибка (викликається подвійним кліком)
+    private void onJumpToTrack(int index) {
+        new Thread(() -> {
+            try {
+                facade.jumpToTrack(channel.getId(), index);
+                Thread.sleep(500);
+                refreshNowPlaying();
+            } catch (Exception e) {
+                showError("Помилка перемикання: " + e.getMessage());
+            }
         }).start();
     }
 

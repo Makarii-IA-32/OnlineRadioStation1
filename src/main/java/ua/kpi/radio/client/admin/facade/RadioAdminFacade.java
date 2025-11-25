@@ -3,6 +3,7 @@ package ua.kpi.radio.client.admin.facade;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import ua.kpi.radio.domain.RadioChannel;
+import ua.kpi.radio.domain.Track;
 
 import java.io.IOException;
 import java.net.URI;
@@ -86,6 +87,23 @@ public class RadioAdminFacade {
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() != 200) throw new IOException("Server error " + response.statusCode());
     }
+    public void createTrack(Track track) throws IOException, InterruptedException {
+        String json = gson.toJson(track);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/admin/tracks/create"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() == 409) {
+            throw new IOException("Такий трек вже існує (назва або файл)!");
+        }
+        if (response.statusCode() != 200) {
+            throw new IOException("Server error " + response.statusCode());
+        }
+    }
 
     // DTOs
     public static class NowPlayingDto {
@@ -98,12 +116,29 @@ public class RadioAdminFacade {
     }
 
     public static class PlaylistInfoDto {
+        private int id; // Додали ID, він може знадобитись
         private String name;
         private int tracksCount;
-        private List<String> tracks;
+        private List<TrackDto> tracks; // Змінено тип
+
         public String getName() { return name; }
+        public int getId() { return id; }
         public int getTracksCount() { return tracksCount; }
-        public List<String> getTracks() { return tracks; }
+        public List<TrackDto> getTracks() { return tracks; }
+    }
+    public static class TrackDto {
+        private int id;
+        private String title;
+        private String artist;
+
+        public int getId() { return id; }
+        public String getTitle() { return title; }
+        public String getArtist() { return artist; }
+
+        @Override
+        public String toString() {
+            return title + " — " + artist; // Це для зручного відображення в ChoiceDialog
+        }
     }
 
     public static class PlaylistSimpleDto {
@@ -112,5 +147,35 @@ public class RadioAdminFacade {
         public int getId() { return id; }
         public String getName() { return name; }
         @Override public String toString() { return name; }
+    }
+    public List<Track> getAllTracks() throws IOException, InterruptedException {
+        String json = sendGet("/admin/tracks/list");
+        return gson.fromJson(json, new TypeToken<List<Track>>(){}.getType());
+    }
+
+    public void createPlaylist(String name) throws IOException, InterruptedException {
+        String encoded = URLEncoder.encode(name, StandardCharsets.UTF_8);
+        sendPost("/admin/playlists/action?action=create&name=" + encoded);
+    }
+
+    public void deletePlaylist(int id) throws IOException, InterruptedException {
+        sendPost("/admin/playlists/action?action=delete&id=" + id);
+    }
+
+    public void addTrackToPlaylist(int playlistId, int trackId) throws IOException, InterruptedException {
+        sendPost("/admin/playlists/track?action=add&playlistId=" + playlistId + "&trackId=" + trackId);
+    }
+
+    public void removeTrackFromPlaylist(int playlistId, int trackId) throws IOException, InterruptedException {
+        sendPost("/admin/playlists/track?action=remove&playlistId=" + playlistId + "&trackId=" + trackId);
+    }
+    public void jumpToTrack(int channelId, int trackIndex) throws IOException, InterruptedException {
+        sendPost("/admin/broadcast/jump?id=" + channelId + "&index=" + trackIndex);
+    }
+    public void deleteTrack(int id) throws IOException, InterruptedException {
+        sendPost("/admin/tracks/delete?id=" + id);
+    }
+    public void setChannelBitrate(int id, int bitrate) throws IOException, InterruptedException {
+        sendPost("/admin/channels/bitrate?id=" + id + "&bitrate=" + bitrate);
     }
 }

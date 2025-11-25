@@ -95,4 +95,59 @@ public class SQLitePlaylistRepository implements PlaylistRepository {
         }
         return list;
     }
+    @Override
+    public void create(String name) throws SQLException {
+        String sql = "INSERT INTO playlists (name) VALUES (?)";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, name);
+            ps.executeUpdate();
+        }
+    }
+
+    @Override
+    public void delete(int id) throws SQLException {
+        // Каскадне видалення треків налаштоване в схемі, тому видаляємо тільки плейлист
+        String sql = "DELETE FROM playlists WHERE id = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ps.executeUpdate();
+        }
+    }
+
+    @Override
+    public void addTrack(int playlistId, int trackId) throws SQLException {
+        // 1. Знаходимо останній order_index
+        int nextIndex = 0;
+        String indexSql = "SELECT MAX(order_index) FROM playlist_tracks WHERE playlist_id = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement ps = conn.prepareStatement(indexSql)) {
+            ps.setInt(1, playlistId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) nextIndex = rs.getInt(1) + 1;
+            }
+        }
+
+        // 2. Вставляємо запис
+        String insertSql = "INSERT INTO playlist_tracks (playlist_id, track_id, order_index) VALUES (?, ?, ?)";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement ps = conn.prepareStatement(insertSql)) {
+            ps.setInt(1, playlistId);
+            ps.setInt(2, trackId);
+            ps.setInt(3, nextIndex);
+            ps.executeUpdate();
+        }
+    }
+
+    @Override
+    public void removeTrack(int playlistId, int trackId) throws SQLException {
+        String sql = "DELETE FROM playlist_tracks WHERE playlist_id = ? AND track_id = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, playlistId);
+            ps.setInt(2, trackId);
+            ps.executeUpdate();
+        }
+    }
 }

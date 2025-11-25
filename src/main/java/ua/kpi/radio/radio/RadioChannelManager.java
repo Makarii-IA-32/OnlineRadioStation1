@@ -143,6 +143,12 @@ public class RadioChannelManager {
         }
     }
 
+    public synchronized void jumpToTrack(int channelId, int trackIndex) {
+        if (activeChannels.containsKey(channelId)) {
+            activeChannels.get(channelId).jumpToTrack(trackIndex);
+        }
+    }
+
     public synchronized void setChannelPlaylist(int channelId, int playlistId) throws SQLException {
         channelRepo.updatePlaylistId(channelId, playlistId);
 
@@ -159,5 +165,28 @@ public class RadioChannelManager {
         int trackIndex;
         long offsetMs;
         ChannelState(int t, long o) { this.trackIndex = t; this.offsetMs = o; }
+    }
+
+    public synchronized void changeBitrate(int channelId, int newBitrate) {
+        try {
+            // 1. Оновлюємо в БД
+            channelRepo.updateBitrate(channelId, newBitrate);
+
+            // 2. Якщо канал зараз активний, оновлюємо його "на гарячу"
+            if (activeChannels.containsKey(channelId)) {
+                ChannelBroadcaster broadcaster = activeChannels.get(channelId);
+
+                // Оновлюємо конфігурацію об'єкта в пам'яті
+                // (getChannelConfig() потрібно буде додати в Broadcaster, див. нижче)
+                broadcaster.getChannelConfig().setBitrate(newBitrate);
+
+                System.out.println("Bitrate changed to " + newBitrate + " for channel " + channelId + ". Restarting stream...");
+
+                // 3. Перезапускаємо процес FFmpeg (просто вбиваємо старий, новий запуститься з новими параметрами)
+                broadcaster.skipTrack();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }

@@ -12,4 +12,6 @@ public interface RadioChannelRepository {
     int create(RadioChannel channel) throws SQLException;
     void delete(int id) throws SQLException;
     void updatePlaylistId(int channelId, int playlistId) throws SQLException;
+    // Додайте в інтерфейс
+    void updateBitrate(int id, int bitrate) throws SQLException;
 }

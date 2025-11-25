@@ -11,14 +11,21 @@ public class AdminBroadcastSkipHandler implements HttpHandler {
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         String idStr = getQueryParam(exchange.getRequestURI(), "id");
-        if (idStr == null) { exchange.sendResponseHeaders(400, 0); return; }
+        if (idStr == null) {
+            exchange.sendResponseHeaders(400, 0);
+            exchange.getResponseBody().close(); // <--- ВАЖЛИВО
+            return;
+        }
 
         try {
             int id = Integer.parseInt(idStr);
             RadioChannelManager.getInstance().skipTrack(id);
             exchange.sendResponseHeaders(200, 0);
+            exchange.getResponseBody().close(); // <--- ВАЖЛИВО
         } catch (Exception e) {
+            e.printStackTrace();
             exchange.sendResponseHeaders(500, 0);
+            exchange.getResponseBody().close(); // <--- ВАЖЛИВО
         }
     }
 

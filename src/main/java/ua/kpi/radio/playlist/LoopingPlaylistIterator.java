@@ -62,4 +62,14 @@ public class LoopingPlaylistIterator implements Iterator<Track> {
         if (t.getAudioPath() == null) return false;
         return Files.exists(Path.of(t.getAudioPath()));
     }
+    public void setIndex(int index) {
+        if (tracks.isEmpty()) return;
+        // Гарантуємо, що індекс в межах списку
+        if (index >= 0 && index < tracks.size()) {
+            this.currentIndex = index;
+        } else {
+            // Якщо індекс кривий — скидаємо на 0
+            this.currentIndex = 0;
+        }
+    }
 }

@@ -7,29 +7,30 @@ import ua.kpi.radio.radio.RadioChannelManager;
 import java.io.IOException;
 import java.net.URI;
 
-public class AdminBroadcastStopHandler implements HttpHandler {
+public class AdminChannelBitrateHandler implements HttpHandler {
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         String idStr = getQueryParam(exchange.getRequestURI(), "id");
+        String bitrateStr = getQueryParam(exchange.getRequestURI(), "bitrate");
+
+        if (idStr == null || bitrateStr == null) {
+            exchange.sendResponseHeaders(400, 0);
+            exchange.getResponseBody().close();
+            return;
+        }
 
         try {
-            if (idStr != null) {
-                int id = Integer.parseInt(idStr);
-                RadioChannelManager.getInstance().stopChannel(id);
-            } else {
-                // Якщо ID не передано — зупиняємо все
-                RadioChannelManager.getInstance().stopAllChannels();
-            }
-            exchange.sendResponseHeaders(200, 0);
-            exchange.getResponseBody().close(); // <--- ВАЖЛИВО
+            int id = Integer.parseInt(idStr);
+            int bitrate = Integer.parseInt(bitrateStr);
 
-        } catch (NumberFormatException e) {
-            exchange.sendResponseHeaders(400, 0);
-            exchange.getResponseBody().close(); // <--- ВАЖЛИВО
+            RadioChannelManager.getInstance().changeBitrate(id, bitrate);
+
+            exchange.sendResponseHeaders(200, 0);
         } catch (Exception e) {
             e.printStackTrace();
             exchange.sendResponseHeaders(500, 0);
-            exchange.getResponseBody().close(); // <--- ВАЖЛИВО
+        } finally {
+            exchange.getResponseBody().close();
         }
     }
 

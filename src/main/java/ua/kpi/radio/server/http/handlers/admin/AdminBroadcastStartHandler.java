@@ -11,15 +11,22 @@ public class AdminBroadcastStartHandler implements HttpHandler {
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         String idStr = getQueryParam(exchange.getRequestURI(), "id");
-        if (idStr != null) {
-            // Запуск конкретного каналу
-            int id = Integer.parseInt(idStr);
-            RadioChannelManager.getInstance().startChannel(id);
-        } else {
-            // Запуск всіх (якщо id не передано)
-            RadioChannelManager.getInstance().startAllChannels();
+        try {
+            if (idStr != null) {
+                // Запуск конкретного каналу
+                int id = Integer.parseInt(idStr);
+                RadioChannelManager.getInstance().startChannel(id);
+            } else {
+                // Запуск всіх (якщо id не передано)
+                RadioChannelManager.getInstance().startAllChannels();
+            }
+            exchange.sendResponseHeaders(200, 0);
+            exchange.getResponseBody().close(); // <--- ВАЖЛИВО: Закриваємо потік
+        } catch (Exception e) {
+            e.printStackTrace();
+            exchange.sendResponseHeaders(500, 0);
+            exchange.getResponseBody().close(); // <--- ВАЖЛИВО
         }
-        exchange.sendResponseHeaders(200, 0);
     }
 
     private String getQueryParam(URI uri, String key) {

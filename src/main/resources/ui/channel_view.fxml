@@ -12,15 +12,22 @@
 
     <HBox spacing="15" alignment="CENTER_LEFT" style="-fx-border-color: #ccc; -fx-border-width: 0 0 1 0; -fx-padding: 0 0 15 0;">
         <Label fx:id="lblChannelName" text="Назва каналу" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
+
+        <ComboBox fx:id="comboBitrate" prefWidth="100"/>
+
         <Region HBox.hgrow="ALWAYS"/>
+
         <Button text="▶ Запустити ефір" onAction="#onStart" style="-fx-base: #90ee90;"/>
         <Button text="⏹ Зупинити ефір" onAction="#onStop" style="-fx-base: #ffcccb;"/>
+
         <Separator orientation="VERTICAL"/>
+
         <Button text="🗑 Видалити канал" onAction="#onDeleteChannel" style="-fx-text-fill: red;"/>
     </HBox>
 
     <HBox spacing="20" alignment="CENTER_LEFT">
-        <ImageView fx:id="imgCover" fitWidth="120" fitHeight="120" preserveRatio="true" style="-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 10, 0, 0, 0);"/>
+        <ImageView fx:id="imgCover" fitWidth="120" fitHeight="120" preserveRatio="true"
+                   style="-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 10, 0, 0, 0);"/>
 
         <VBox spacing="5" alignment="CENTER_LEFT">
             <Label text="ЗАРАЗ ГРАЄ" style="-fx-font-size: 10px; -fx-text-fill: #666;"/>

@@ -90,4 +90,16 @@ public class SQLiteRadioChannelRepository implements RadioChannelRepository {
                 rs.getInt("bitrate")
         );
     }
+
+    // Додайте реалізацію в клас
+    @Override
+    public void updateBitrate(int id, int bitrate) throws SQLException {
+        String sql = "UPDATE radio_channels SET bitrate = ? WHERE id = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, bitrate);
+            ps.setInt(2, id);
+            ps.executeUpdate();
+        }
+    }
 }

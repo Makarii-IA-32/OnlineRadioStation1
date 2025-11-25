@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.control.Button?>
-<?import javafx.scene.control.Tab?>
 <?import javafx.scene.control.TabPane?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.geometry.Insets?>
+<?import javafx.scene.layout.VBox?>
 
 <BorderPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
@@ -15,13 +14,25 @@
     <top>
         <HBox spacing="10" alignment="CENTER_LEFT" style="-fx-background-color: #e0e0e0; -fx-padding: 5;">
             <TabPane fx:id="channelsTabPane" HBox.hgrow="ALWAYS" tabClosingPolicy="SELECTED_TAB">
-                <tabs>
-                    <Tab fx:id="plusTab" text=" + " closable="false"/>
-                </tabs>
             </TabPane>
 
-            <Button text="📂 Керування плейлистами" onAction="#onOpenPlaylistManager"
-                    style="-fx-font-weight: bold; -fx-base: #b6d7a8;"/>
+            <VBox spacing="5" alignment="CENTER">
+                <Button text="➕ Новий канал" onAction="#onCreateChannel"
+                        maxWidth="Infinity"
+                        style="-fx-font-weight: bold; -fx-base: #87CEFA;"/>
+
+                <Button text="🎵 Додати трек" onAction="#onUploadTrack"
+                        maxWidth="Infinity"
+                        style="-fx-font-weight: bold; -fx-base: #FFD700;"/>
+
+                <Button text="📚 Вся бібліотека" onAction="#onOpenLibrary"
+                        maxWidth="Infinity"
+                        style="-fx-font-weight: bold; -fx-base: #dda0dd;"/>
+
+                <Button text="📂 Плейлисти" onAction="#onOpenPlaylistManager"
+                        maxWidth="Infinity"
+                        style="-fx-font-weight: bold; -fx-base: #b6d7a8;"/>
+            </VBox>
         </HBox>
     </top>
 

@@ -2,31 +2,50 @@ package ua.kpi.radio.server.http.handlers.admin;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import ua.kpi.radio.radio.RadioChannelManager;
+import ua.kpi.radio.domain.Track;
+import ua.kpi.radio.repo.SQLiteTrackRepository;
+import ua.kpi.radio.repo.TrackRepository;
 
 import java.io.IOException;
 import java.net.URI;
-import java.sql.SQLException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
-public class AdminChannelDeleteHandler implements HttpHandler {
+public class AdminTrackDeleteHandler implements HttpHandler {
+    private final TrackRepository trackRepo = new SQLiteTrackRepository();
+
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         String idStr = getQueryParam(exchange.getRequestURI(), "id");
         if (idStr == null) {
             exchange.sendResponseHeaders(400, 0);
+            exchange.getResponseBody().close();
             return;
         }
 
         try {
             int id = Integer.parseInt(idStr);
-            RadioChannelManager.getInstance().deleteChannel(id);
+            Track track = trackRepo.findById(id);
+
+            if (track != null) {
+                // 1. Спробуємо видалити фізичний файл
+                try {
+                    Path path = Path.of(track.getAudioPath());
+                    Files.deleteIfExists(path);
+                    System.out.println("Deleted file: " + path);
+                } catch (Exception e) {
+                    System.err.println("Could not delete file: " + e.getMessage());
+                }
+
+                // 2. Видаляємо з БД
+                trackRepo.delete(id);
+            }
+
             exchange.sendResponseHeaders(200, 0);
-            exchange.getResponseBody().close();
-        } catch (NumberFormatException e) {
-            exchange.sendResponseHeaders(400, 0);
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             exchange.sendResponseHeaders(500, 0);
+        } finally {
             exchange.getResponseBody().close();
         }
     }

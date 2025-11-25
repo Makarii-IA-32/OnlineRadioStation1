@@ -7,29 +7,30 @@ import ua.kpi.radio.radio.RadioChannelManager;
 import java.io.IOException;
 import java.net.URI;
 
-public class AdminBroadcastStopHandler implements HttpHandler {
+public class AdminBroadcastJumpHandler implements HttpHandler {
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         String idStr = getQueryParam(exchange.getRequestURI(), "id");
+        String indexStr = getQueryParam(exchange.getRequestURI(), "index");
+
+        if (idStr == null || indexStr == null) {
+            exchange.sendResponseHeaders(400, 0);
+            exchange.getResponseBody().close();
+            return;
+        }
 
         try {
-            if (idStr != null) {
-                int id = Integer.parseInt(idStr);
-                RadioChannelManager.getInstance().stopChannel(id);
-            } else {
-                // Якщо ID не передано — зупиняємо все
-                RadioChannelManager.getInstance().stopAllChannels();
-            }
-            exchange.sendResponseHeaders(200, 0);
-            exchange.getResponseBody().close(); // <--- ВАЖЛИВО
+            int channelId = Integer.parseInt(idStr);
+            int trackIndex = Integer.parseInt(indexStr);
 
-        } catch (NumberFormatException e) {
-            exchange.sendResponseHeaders(400, 0);
-            exchange.getResponseBody().close(); // <--- ВАЖЛИВО
+            RadioChannelManager.getInstance().jumpToTrack(channelId, trackIndex);
+
+            exchange.sendResponseHeaders(200, 0);
+            exchange.getResponseBody().close();
         } catch (Exception e) {
             e.printStackTrace();
             exchange.sendResponseHeaders(500, 0);
-            exchange.getResponseBody().close(); // <--- ВАЖЛИВО
+            exchange.getResponseBody().close();
         }
     }
 

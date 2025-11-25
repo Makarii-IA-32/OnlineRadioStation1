@@ -10,6 +10,7 @@ import ua.kpi.radio.repo.SQLitePlaylistRepository;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -27,10 +28,15 @@ public class AdminPlaylistHandler implements HttpHandler {
             return;
         }
 
+        String idStr = getQueryParam(exchange.getRequestURI(), "id");
         Playlist playlist = null;
+
         try {
-            // Беремо дефолтний плейлист для відображення в адмінці
-            playlist = playlistRepository.loadDefaultPlaylist();
+            if (idStr != null) {
+                playlist = playlistRepository.findById(Integer.parseInt(idStr));
+            } else {
+                playlist = playlistRepository.loadDefaultPlaylist();
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -39,11 +45,12 @@ public class AdminPlaylistHandler implements HttpHandler {
         if (playlist != null) {
             dto.id = playlist.getId();
             dto.name = playlist.getName();
-            dto.description = ""; // Поле видалили з БД, залишаємо пустим або видаляємо з DTO
             dto.tracksCount = playlist.getTracks().size();
             dto.tracks = new ArrayList<>();
+
+            // ЗМІНА: Заповнюємо список об'єктами
             for (Track t : playlist.getTracks()) {
-                dto.tracks.add(t.getTitle() + " — " + t.getArtist());
+                dto.tracks.add(new TrackDto(t.getId(), t.getTitle(), t.getArtist()));
             }
         }
 
@@ -57,12 +64,33 @@ public class AdminPlaylistHandler implements HttpHandler {
         }
     }
 
-    // DTO
+    private String getQueryParam(URI uri, String key) {
+        String query = uri.getQuery();
+        if (query == null) return null;
+        for (String p : query.split("&")) {
+            String[] kv = p.split("=");
+            if (kv.length == 2 && kv[0].equals(key)) return kv[1];
+        }
+        return null;
+    }
+
+    // Оновлені DTO
     static class PlaylistInfoDto {
         int id;
         String name;
-        String description;
         int tracksCount;
-        List<String> tracks;
+        List<TrackDto> tracks; // Було List<String>, стало List<TrackDto>
+    }
+
+    static class TrackDto {
+        int id;
+        String title;
+        String artist;
+
+        public TrackDto(int id, String title, String artist) {
+            this.id = id;
+            this.title = title;
+            this.artist = artist;
+        }
     }
 }
