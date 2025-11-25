@@ -11,12 +11,10 @@ public class LoopingPlaylistIterator implements Iterator<Track> {
     private final List<Track> tracks;
     private int currentIndex = 0;
 
-    // Конструктор за замовчуванням (з початку)
     public LoopingPlaylistIterator(List<Track> tracks) {
         this(tracks, 0);
     }
 
-    // Новий конструктор: старт з конкретного індексу
     public LoopingPlaylistIterator(List<Track> tracks, int startIndex) {
         this.tracks = List.copyOf(tracks);
         if (startIndex >= 0 && startIndex < tracks.size()) {
@@ -38,7 +36,6 @@ public class LoopingPlaylistIterator implements Iterator<Track> {
         int attempts = 0;
         while (attempts < tracks.size()) {
             Track t = tracks.get(currentIndex);
-            // Переходимо до наступного, запам'ятовуючи цей
             currentIndex = (currentIndex + 1) % tracks.size();
             attempts++;
 
@@ -51,25 +48,24 @@ public class LoopingPlaylistIterator implements Iterator<Track> {
         return null;
     }
 
-    // Метод, щоб дізнатися, який трек ГРАЄ ЗАРАЗ (тобто попередній виданий)
+    // Метод для стрибка на конкретний трек
+    public void setIndex(int index) {
+        if (tracks.isEmpty()) return;
+        if (index >= 0 && index < tracks.size()) {
+            this.currentIndex = index;
+        } else {
+            this.currentIndex = 0;
+        }
+    }
+
+    // Отримати індекс поточного треку
     public int getLastReturnedIndex() {
         if (tracks.isEmpty()) return 0;
-        // Оскільки currentIndex вже вказує на майбутнє, робимо крок назад
         return (currentIndex - 1 + tracks.size()) % tracks.size();
     }
 
     private boolean isValidTrack(Track t) {
         if (t.getAudioPath() == null) return false;
         return Files.exists(Path.of(t.getAudioPath()));
-    }
-    public void setIndex(int index) {
-        if (tracks.isEmpty()) return;
-        // Гарантуємо, що індекс в межах списку
-        if (index >= 0 && index < tracks.size()) {
-            this.currentIndex = index;
-        } else {
-            // Якщо індекс кривий — скидаємо на 0
-            this.currentIndex = 0;
-        }
     }
 }

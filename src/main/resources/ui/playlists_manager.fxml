@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<SplitPane xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="ua.kpi.radio.client.admin.PlaylistsManagerController"
+           dividerPositions="0.3" prefWidth="800" prefHeight="500">
+
+    <VBox spacing="10" style="-fx-padding: 10;">
+        <Label text="Плейлисти" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
+
+        <ListView fx:id="listPlaylists" VBox.vgrow="ALWAYS"/>
+
+        <HBox spacing="5">
+            <Button text="➕ Створити" onAction="#onCreatePlaylist" maxWidth="Infinity" HBox.hgrow="ALWAYS" style="-fx-base: #90ee90;"/>
+            <Button text="🗑 Видалити" onAction="#onDeletePlaylist" maxWidth="Infinity" HBox.hgrow="ALWAYS" style="-fx-base: #ffcccb;"/>
+        </HBox>
+    </VBox>
+
+    <VBox spacing="10" style="-fx-padding: 10;">
+        <Label fx:id="lblSelectedPlaylist" text="Оберіть плейлист" style="-fx-font-weight: bold; -fx-font-size: 16px;"/>
+
+        <ListView fx:id="listTracks" VBox.vgrow="ALWAYS"/>
+
+        <HBox spacing="10">
+            <Button text="🎵 Додати трек до плейлиста" onAction="#onAddTrack" style="-fx-base: #87CEFA;"/>
+            <Button text="❌ Прибрати трек" onAction="#onRemoveTrack"/>
+        </HBox>
+    </VBox>
+
+</SplitPane>

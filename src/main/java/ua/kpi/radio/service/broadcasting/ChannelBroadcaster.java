@@ -20,11 +20,10 @@ public class ChannelBroadcaster implements Runnable {
     private volatile boolean running = true;
     private Process ffmpegProcess;
 
-    // Стан часу
     private long currentTrackStartTime = 0;
-    private long initialSeekMs = 0; // Для старту сервера
+    private long initialSeekMs = 0;
 
-    // НОВЕ ПОЛЕ: Примусовий час старту (для зміни бітрейту)
+    // Час для примусового старту (зміна бітрейту)
     private volatile long forcedSeekMs = -1;
 
     public ChannelBroadcaster(RadioChannel channelConfig, LoopingPlaylistIterator iterator, long startOffsetMs) {
@@ -53,47 +52,49 @@ public class ChannelBroadcaster implements Runnable {
 
             radioService.updateNowPlaying(channelConfig.getId(), track);
 
-            // Визначаємо, з якої секунди стартувати
-            long seekToUse;
+            // ВИПРАВЛЕННЯ ТУТ:
+            // Визначаємо час старту і одразу "споживаємо" змінну (скидаємо в -1 або 0)
+            long seekToUse = 0;
+
             if (forcedSeekMs >= 0) {
-                seekToUse = forcedSeekMs; // Пріоритет 1: Зміна бітрейту
+                seekToUse = forcedSeekMs;
+                forcedSeekMs = -1; // Спожили значення
             } else {
-                seekToUse = initialSeekMs; // Пріоритет 2: Старт сервера
+                seekToUse = initialSeekMs;
+                initialSeekMs = 0; // Спожили значення
             }
 
-            // Фіксуємо час початку (з урахуванням зсуву)
+            // Фіксуємо реальний час початку (ніби ми почали seekToUse мілісекунд тому)
             currentTrackStartTime = System.currentTimeMillis() - seekToUse;
 
             System.out.println("[" + channelConfig.getName() + "] Playing: " + track.getTitle()
                     + (seekToUse > 0 ? " (Resuming from " + (seekToUse/1000) + "s)" : ""));
 
-            // Запускаємо трансляцію
             runFfmpeg(track, outputDir, seekToUse);
 
-            // Скидаємо прапорці після відтворення
-            initialSeekMs = 0;
-            forcedSeekMs = -1;
+            // ТУТ БУЛО ОБНУЛЕННЯ, ЯКЕ МИ ПРИБРАЛИ
+            // Бо якщо ми скинемо forcedSeekMs тут, то при перезапуску (restartWithNewBitrate)
+            // ми втратимо значення ще до початку наступної ітерації.
         }
     }
 
-    // --- НОВИЙ МЕТОД ---
     public void restartWithNewBitrate(int newBitrate) {
-        // 1. Запам'ятовуємо, де ми зараз
+        // 1. Запам'ятовуємо позицію
         long currentPos = getCurrentTrackPositionMs();
         System.out.println("Restarting stream at " + currentPos + "ms with bitrate " + newBitrate);
 
-        // 2. Встановлюємо цей час для наступного запуску
+        // 2. Встановлюємо час для наступного запуску
         this.forcedSeekMs = currentPos;
 
-        // 3. Оновлюємо конфіг
+        // 3. Міняємо налаштування
         this.channelConfig.setBitrate(newBitrate);
 
-        // 4. "Відмотуємо" ітератор назад, щоб наступний .next() повернув ЦЕЙ ЖЕ трек
+        // 4. Повертаємо ітератор на поточний трек
         int currentIndex = trackIterator.getLastReturnedIndex();
         trackIterator.setIndex(currentIndex);
 
-        // 5. Вбиваємо процес. Цикл run() перейде на початок, візьме той же трек
-        // і використає forcedSeekMs
+        // 5. Вбиваємо процес
+        // Цикл завершить runFfmpeg, піде на нове коло, побачить forcedSeekMs і використає його
         if (ffmpegProcess != null && ffmpegProcess.isAlive()) {
             ffmpegProcess.destroy();
         }
@@ -117,34 +118,47 @@ public class ChannelBroadcaster implements Runnable {
         return Math.max(0, pos);
     }
 
-    // ... методи runFfmpeg, prepareDirectory, jumpToTrack, skipTrack без змін ...
-    // (скопіюйте їх з попередніх версій або залиште як є, якщо ви їх вже додали)
+    public void jumpToTrack(int index) {
+        trackIterator.setIndex(index);
+        if (ffmpegProcess != null && ffmpegProcess.isAlive()) {
+            ffmpegProcess.destroy();
+        }
+    }
+
+    public void skipTrack() {
+        if (ffmpegProcess != null && ffmpegProcess.isAlive()) {
+            ffmpegProcess.destroy();
+        }
+    }
 
     private void runFfmpeg(Track track, Path outputDir, long seekMs) {
         if (!Files.exists(Path.of(track.getAudioPath()))) {
             return;
         }
         File outputM3u8 = outputDir.resolve("stream.m3u8").toFile();
+
         try {
             ProcessBuilder pb;
             if (seekMs > 0) {
                 double seekSeconds = seekMs / 1000.0;
+                // Формуємо команду зі зміщенням -ss
                 pb = new ProcessBuilder(
                         "ffmpeg", "-hide_banner", "-loglevel", "error",
                         "-ss", String.format("%.3f", seekSeconds).replace(',', '.'),
                         "-re", "-i", track.getAudioPath(),
                         "-vn", "-c:a", "aac",
-                        "-b:a", channelConfig.getBitrate() + "k", // <-- Тут вже буде новий бітрейт
+                        "-b:a", channelConfig.getBitrate() + "k", // Новий бітрейт
                         "-f", "hls", "-hls_time", "2", "-hls_list_size", "5",
                         "-hls_flags", "delete_segments+append_list+discont_start+omit_endlist",
                         outputM3u8.getAbsolutePath()
                 );
             } else {
+                // Звичайний запуск
                 pb = new ProcessBuilder(
                         "ffmpeg", "-hide_banner", "-loglevel", "error",
                         "-re", "-i", track.getAudioPath(),
                         "-vn", "-c:a", "aac",
-                        "-b:a", channelConfig.getBitrate() + "k",
+                        "-b:a", channelConfig.getBitrate() + "k", // Новий бітрейт
                         "-f", "hls", "-hls_time", "2", "-hls_list_size", "5",
                         "-hls_flags", "delete_segments+append_list+discont_start+omit_endlist",
                         outputM3u8.getAbsolutePath()
@@ -153,7 +167,10 @@ public class ChannelBroadcaster implements Runnable {
             pb.inheritIO();
             ffmpegProcess = pb.start();
             ffmpegProcess.waitFor();
-        } catch (Exception e) { e.printStackTrace(); }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void prepareDirectory(Path dir) {
@@ -167,16 +184,8 @@ public class ChannelBroadcaster implements Runnable {
                     }
                 }
             }
-        } catch (IOException e) { e.printStackTrace(); }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
-
-    public void skipTrack() {
-        if (ffmpegProcess != null && ffmpegProcess.isAlive()) ffmpegProcess.destroy();
-    }
-
-    public void jumpToTrack(int index) {
-        trackIterator.setIndex(index);
-        if (ffmpegProcess != null && ffmpegProcess.isAlive()) ffmpegProcess.destroy();
-    }
-
 }

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="ua.kpi.radio.client.admin.LibraryController"
+      spacing="10" style="-fx-padding: 15;">
+
+    <Label text="Бібліотека треків" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+
+    <ListView fx:id="listTracks" VBox.vgrow="ALWAYS"/>
+
+    <Button text="🗑 Видалити вибраний трек" onAction="#onDelete"
+            maxWidth="Infinity" style="-fx-base: #ffcccb; -fx-font-weight: bold;"/>
+</VBox>

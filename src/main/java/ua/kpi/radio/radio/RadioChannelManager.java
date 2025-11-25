@@ -22,10 +22,7 @@ public class RadioChannelManager {
     private final RadioChannelRepository channelRepo = new SQLiteRadioChannelRepository();
     private final PlaylistRepository playlistRepo = new SQLitePlaylistRepository();
 
-    // Активні трансляції (ChannelId -> Broadcaster)
     private final Map<Integer, ChannelBroadcaster> activeChannels = new ConcurrentHashMap<>();
-
-    // Збережений стан для відновлення (ChannelId -> State)
     private final Map<Integer, ChannelState> savedStates = new HashMap<>();
 
     private RadioChannelManager() {}
@@ -34,13 +31,9 @@ public class RadioChannelManager {
         return INSTANCE;
     }
 
-    // --- Status Check (Метод, якого не вистачало) ---
-
     public boolean isAnyChannelRunning() {
         return !activeChannels.isEmpty();
     }
-
-    // --- Start / Stop Logic ---
 
     public synchronized void startAllChannels() {
         try {
@@ -54,14 +47,13 @@ public class RadioChannelManager {
     }
 
     public synchronized void stopAllChannels() {
-        // Створюємо копію ключів, щоб уникнути ConcurrentModificationException
         for (Integer id : List.copyOf(activeChannels.keySet())) {
             stopChannel(id);
         }
     }
 
     public synchronized void startChannel(int id) {
-        if (activeChannels.containsKey(id)) return; // Вже працює
+        if (activeChannels.containsKey(id)) return;
         try {
             RadioChannel ch = channelRepo.findById(id);
             if (ch != null) {
@@ -75,12 +67,9 @@ public class RadioChannelManager {
     public synchronized void stopChannel(int id) {
         if (activeChannels.containsKey(id)) {
             ChannelBroadcaster bc = activeChannels.get(id);
-
-            // Зберігаємо стан (трек і час)
             int trackIdx = bc.getCurrentTrackIndex();
             long offset = bc.getCurrentTrackPositionMs();
             savedStates.put(id, new ChannelState(trackIdx, offset));
-            System.out.println("Stopping channel " + id + ". Saved state: Track=" + trackIdx + ", Time=" + offset);
 
             bc.stop();
             activeChannels.remove(id);
@@ -93,11 +82,10 @@ public class RadioChannelManager {
         try {
             Playlist pl = playlistRepo.findById(ch.getPlaylistId());
             if (pl == null || pl.getTracks().isEmpty()) {
-                System.err.println("Cannot start channel " + ch.getName() + ": Playlist is empty or missing.");
+                System.err.println("Cannot start channel " + ch.getName() + ": Playlist empty.");
                 return;
             }
 
-            // Відновлення стану
             int startIndex = 0;
             long startOffsetMs = 0;
             if (savedStates.containsKey(ch.getId())) {
@@ -120,13 +108,9 @@ public class RadioChannelManager {
         }
     }
 
-    // --- Actions ---
-
     public synchronized void createChannel(String name) throws SQLException {
-        // За замовчуванням прив'язуємо до першого плейлиста, щоб канал не був "мертвим"
         Playlist def = playlistRepo.loadDefaultPlaylist();
         int plId = (def != null) ? def.getId() : 0;
-
         RadioChannel ch = new RadioChannel(0, name, plId, 128);
         channelRepo.create(ch);
     }
@@ -151,42 +135,29 @@ public class RadioChannelManager {
 
     public synchronized void setChannelPlaylist(int channelId, int playlistId) throws SQLException {
         channelRepo.updatePlaylistId(channelId, playlistId);
-
-        // Якщо канал активний — перезапускаємо
         if (activeChannels.containsKey(channelId)) {
             stopChannel(channelId);
-            savedStates.remove(channelId); // Скидаємо стан, бо плейлист новий
+            savedStates.remove(channelId);
             startChannel(channelId);
         }
     }
 
-    // Helper
-    private static class ChannelState {
-        int trackIndex;
-        long offsetMs;
-        ChannelState(int t, long o) { this.trackIndex = t; this.offsetMs = o; }
-    }
-
     public synchronized void changeBitrate(int channelId, int newBitrate) {
         try {
-            // 1. Оновлюємо в БД
             channelRepo.updateBitrate(channelId, newBitrate);
-
-            // 2. Якщо канал зараз активний, оновлюємо його "на гарячу"
             if (activeChannels.containsKey(channelId)) {
                 ChannelBroadcaster broadcaster = activeChannels.get(channelId);
-
-                // Оновлюємо конфігурацію об'єкта в пам'яті
-                // (getChannelConfig() потрібно буде додати в Broadcaster, див. нижче)
-                broadcaster.getChannelConfig().setBitrate(newBitrate);
-
-                System.out.println("Bitrate changed to " + newBitrate + " for channel " + channelId + ". Restarting stream...");
-
-                // 3. Перезапускаємо процес FFmpeg (просто вбиваємо старий, новий запуститься з новими параметрами)
-                broadcaster.skipTrack();
+                // Тут ми викликаємо restartWithNewBitrate
+                broadcaster.restartWithNewBitrate(newBitrate);
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    private static class ChannelState {
+        int trackIndex;
+        long offsetMs;
+        ChannelState(int t, long o) { this.trackIndex = t; this.offsetMs = o; }
     }
 }

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="ua.kpi.radio.client.admin.UploadTrackController"
+      spacing="15" style="-fx-padding: 20;">
+
+    <Label text="Додавання нового треку" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+
+    <HBox spacing="20">
+        <StackPane fx:id="dropArea" prefWidth="200" prefHeight="200"
+                   style="-fx-border-color: #aaa; -fx-border-style: dashed; -fx-background-color: #f9f9f9;">
+            <Label text="Перетягніть MP3 файл сюди" wrapText="true" textAlignment="CENTER"/>
+        </StackPane>
+
+        <VBox spacing="10" HBox.hgrow="ALWAYS">
+            <Label text="Назва файлу:"/>
+            <TextField fx:id="txtFilename" editable="false" promptText="файл не обрано"/>
+
+            <Label text="Назва треку (Title) *"/>
+            <TextField fx:id="txtTitle"/>
+
+            <Label text="Виконавець (Artist)"/>
+            <TextField fx:id="txtArtist"/>
+
+            <Label text="Альбом (Album)"/>
+            <TextField fx:id="txtAlbum"/>
+
+            <Button text="💾 Зберегти" onAction="#onSave" maxWidth="Infinity" style="-fx-base: #90ee90; -fx-margin-top: 10;"/>
+            <Label fx:id="lblStatus" text="" style="-fx-text-fill: green;"/>
+        </VBox>
+    </HBox>
+</VBox>
