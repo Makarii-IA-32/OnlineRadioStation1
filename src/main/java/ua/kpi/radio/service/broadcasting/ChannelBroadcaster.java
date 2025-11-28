@@ -72,9 +72,6 @@ public class ChannelBroadcaster implements Runnable {
 
             runFfmpeg(track, outputDir, seekToUse);
 
-            // ТУТ БУЛО ОБНУЛЕННЯ, ЯКЕ МИ ПРИБРАЛИ
-            // Бо якщо ми скинемо forcedSeekMs тут, то при перезапуску (restartWithNewBitrate)
-            // ми втратимо значення ще до початку наступної ітерації.
         }
     }
 

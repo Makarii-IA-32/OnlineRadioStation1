@@ -19,9 +19,10 @@ public class HttpServerLauncher {
         server.createContext("/", new RootHandler());
         server.createContext("/hls", new HlsHandler(Paths.get("hls")));
         server.createContext("/api/now-playing", new NowPlayingHandler());
+        server.createContext("/api/channels", new AdminChannelListHandler());
         server.createContext("/covers", new CoverHandler());
 
-        // --- Адмінські ендпоінти (керування) ---
+        // --- Адмінські ендпоінти ---
 
         // Плейлист та статус
         server.createContext("/admin/playlist", new AdminPlaylistHandler());
@@ -36,7 +37,7 @@ public class HttpServerLauncher {
         server.createContext("/admin/channels/bitrate", new AdminChannelBitrateHandler());
 
         // Керування каналами
-        server.createContext("/admin/channels", new AdminChannelListHandler()); // Список
+        server.createContext("/admin/channels", new AdminChannelListHandler());
         server.createContext("/admin/channels/create", new AdminChannelCreateHandler());
         server.createContext("/admin/channels/delete", new AdminChannelDeleteHandler());
         server.createContext("/admin/channels/set-playlist", new AdminChannelSetPlaylistHandler());
@@ -48,6 +49,7 @@ public class HttpServerLauncher {
         server.createContext("/admin/playlists/action", new AdminPlaylistActionHandler());
         server.createContext("/admin/playlists/track", new AdminPlaylistTrackHandler());
         server.createContext("/admin/tracks/delete", new AdminTrackDeleteHandler());
+        server.createContext("/admin/tracks/update", new AdminTrackUpdateHandler());
 
         server.setExecutor(null);
         server.start();

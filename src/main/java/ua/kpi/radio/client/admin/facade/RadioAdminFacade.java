@@ -20,7 +20,6 @@ public class RadioAdminFacade {
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final Gson gson = new Gson();
 
-    // --- CHANNELS ---
 
     public List<RadioChannel> getAllChannels() throws IOException, InterruptedException {
         String json = sendGet("/admin/channels");
@@ -100,6 +99,20 @@ public class RadioAdminFacade {
         if (response.statusCode() == 409) {
             throw new IOException("Такий трек вже існує (назва або файл)!");
         }
+        if (response.statusCode() != 200) {
+            throw new IOException("Server error " + response.statusCode());
+        }
+    }
+    // Додайте метод для оновлення
+    public void updateTrack(Track track) throws IOException, InterruptedException {
+        String json = gson.toJson(track);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/admin/tracks/update"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() != 200) {
             throw new IOException("Server error " + response.statusCode());
         }

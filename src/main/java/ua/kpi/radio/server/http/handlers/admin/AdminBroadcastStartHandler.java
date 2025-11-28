@@ -21,11 +21,11 @@ public class AdminBroadcastStartHandler implements HttpHandler {
                 RadioChannelManager.getInstance().startAllChannels();
             }
             exchange.sendResponseHeaders(200, 0);
-            exchange.getResponseBody().close(); // <--- ВАЖЛИВО: Закриваємо потік
+            exchange.getResponseBody().close();
         } catch (Exception e) {
             e.printStackTrace();
             exchange.sendResponseHeaders(500, 0);
-            exchange.getResponseBody().close(); // <--- ВАЖЛИВО
+            exchange.getResponseBody().close();
         }
     }
 

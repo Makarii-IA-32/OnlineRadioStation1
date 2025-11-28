@@ -14,12 +14,11 @@ public class AdminApp extends Application {
 
     @Override
     public void start(Stage primaryStage) throws IOException {
-        // ВИПРАВЛЕНО: завантажуємо новий main_view.fxml замість старого admin_main.fxml
         FXMLLoader loader = new FXMLLoader(
                 getClass().getResource("/ui/main_view.fxml")
         );
 
-        Scene scene = new Scene(loader.load(), 900, 600);
+        Scene scene = new Scene(loader.load(), 900, 800);
         primaryStage.setTitle("Online Radio Station - Admin Panel");
         primaryStage.setScene(scene);
         primaryStage.show();

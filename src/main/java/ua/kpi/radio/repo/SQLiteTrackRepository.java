@@ -110,4 +110,18 @@ public class SQLiteTrackRepository implements TrackRepository {
             ps.executeUpdate();
         }
     }
+    @Override
+    public void update(Track track) throws SQLException {
+        // Додаємо cover_path в запит
+        String sql = "UPDATE tracks SET title = ?, artist = ?, album = ?, cover_path = ? WHERE id = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, track.getTitle());
+            ps.setString(2, track.getArtist());
+            ps.setString(3, track.getAlbum());
+            ps.setString(4, track.getCoverPath());
+            ps.setInt(5, track.getId());
+            ps.executeUpdate();
+        }
+    }
 }

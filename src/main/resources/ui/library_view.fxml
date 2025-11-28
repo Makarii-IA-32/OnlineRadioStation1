@@ -11,6 +11,11 @@
 
     <ListView fx:id="listTracks" VBox.vgrow="ALWAYS"/>
 
-    <Button text="🗑 Видалити вибраний трек" onAction="#onDelete"
-            maxWidth="Infinity" style="-fx-base: #ffcccb; -fx-font-weight: bold;"/>
+    <HBox spacing="10">
+        <Button text="✏ Редагувати" onAction="#onEdit"
+                maxWidth="Infinity" HBox.hgrow="ALWAYS" style="-fx-base: #87CEFA; -fx-font-weight: bold;"/>
+
+        <Button text="🗑 Видалити" onAction="#onDelete"
+                maxWidth="Infinity" HBox.hgrow="ALWAYS" style="-fx-base: #ffcccb; -fx-font-weight: bold;"/>
+    </HBox>
 </VBox>

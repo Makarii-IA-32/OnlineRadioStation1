@@ -19,7 +19,6 @@ public class ServerMain {
             HttpServerLauncher launcher = new HttpServerLauncher();
             launcher.start(8080);
 
-            System.out.println("Server started. Press Ctrl+C to stop.");
         } catch (Exception e) {
             e.printStackTrace();
         }

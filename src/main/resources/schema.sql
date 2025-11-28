@@ -4,8 +4,8 @@ CREATE TABLE IF NOT EXISTS tracks (
                                       title TEXT NOT NULL,
                                       artist TEXT,
                                       album TEXT,
-                                      audio_path TEXT NOT NULL, -- наприклад: "music-library/track.mp3"
-                                      cover_path TEXT           -- наприклад: "cover-library/cover.jpg"
+                                      audio_path TEXT NOT NULL,
+                                      cover_path TEXT
 );
 
 -- Користувачі
@@ -15,20 +15,20 @@ CREATE TABLE IF NOT EXISTS users (
                                      session_id  TEXT UNIQUE
 );
 
--- Таблиця каналів (ID тепер INTEGER)
+-- Таблиця каналів
 CREATE TABLE IF NOT EXISTS radio_channels (
                                               id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                                              name        TEXT NOT NULL UNIQUE, -- "main", "rock" (використовується для назви папки)
+                                              name        TEXT NOT NULL UNIQUE,
                                               playlist_id INTEGER,
                                               bitrate     INTEGER DEFAULT 128
 );
 
--- Події прослуховування (channel_id тепер INTEGER)
+-- Події прослуховування
 CREATE TABLE IF NOT EXISTS playback_events (
                                                id          INTEGER PRIMARY KEY AUTOINCREMENT,
                                                user_id     INTEGER NOT NULL,
                                                track_id    INTEGER NOT NULL,
-                                               channel_id  INTEGER,          -- ID трансляції
+                                               channel_id  INTEGER,
                                                start_time  TEXT NOT NULL,
                                                end_time    TEXT,
                                                FOREIGN KEY (user_id) REFERENCES users(id),
@@ -40,7 +40,6 @@ CREATE TABLE IF NOT EXISTS playback_events (
 CREATE TABLE IF NOT EXISTS playlists (
                                          id          INTEGER PRIMARY KEY AUTOINCREMENT,
                                          name        TEXT NOT NULL
-    -- description видалено
 );
 
 -- Звʼязок плейлистів і треків

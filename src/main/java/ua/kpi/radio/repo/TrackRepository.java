@@ -15,4 +15,5 @@ public interface TrackRepository {
     List<Track> findAll() throws SQLException;
     boolean exists(String title, String audioPath) throws SQLException;
     void delete(int id) throws SQLException;
+    void  update(Track track) throws SQLException;
 }
